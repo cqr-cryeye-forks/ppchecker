@@ -119,8 +119,8 @@ async def main(urls,c,debug,file):
     # one browser multiple tags
     browser = await launch({
         "ignoreHTTPSErrors": True,
-        "args": ["--ignore-certificate-errors"],
-        "headless" : not debug
+        "args": ["--ignore-certificate-errors", "--no-sandbox"],
+        "headless": not debug
     })
 
 
