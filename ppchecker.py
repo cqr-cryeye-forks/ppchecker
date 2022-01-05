@@ -94,7 +94,7 @@ async def do_req(browser, url, payload, semaphore,file):
             if pollution == val:
                 sys.stdout.write(f"{GREEN}[*] Vulnerable, {url} \n{RESET}")
                 with open(file, 'a+') as fl:
-                    fl.write(f"Vulnerable {url}\n")
+                    fl.write(f"{url}\n")
 
             await new_tab.close()
 
