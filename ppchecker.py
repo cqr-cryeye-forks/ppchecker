@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from urllib import parse
 from pyppeteer import launch
 import pyppeteer
@@ -59,7 +60,7 @@ async def close_dialog(dialog):
     await dialog.dismiss()
     return
 
-async def do_req(browser, url, payload, semaphore):
+async def do_req(browser, url, payload, semaphore,file):
     async with semaphore:
         prop = rand_str(10)
         val = rand_str(10)
@@ -80,7 +81,7 @@ async def do_req(browser, url, payload, semaphore):
 
             new_tab = await browser.newPage()
             new_tab.on('dialog', lambda dialog: asyncio.ensure_future(close_dialog(dialog)))
-            await new_tab.setUserAgent(user_agent); # not needed but why not
+            await new_tab.setUserAgent(user_agent) # not needed but why not
 
 
             await new_tab.goto(url)
@@ -91,7 +92,9 @@ async def do_req(browser, url, payload, semaphore):
 
 
             if pollution == val:
-                sys.stdout.write(f"{GREEN}[*] Vulnerable, {url} \n{RESET}")    
+                sys.stdout.write(f"{GREEN}[*] Vulnerable, {url} \n{RESET}")
+                with open(file, 'a+') as fl:
+                    fl.write(f"Vulnerable {url}\n")
 
             await new_tab.close()
 
@@ -105,9 +108,13 @@ async def do_req(browser, url, payload, semaphore):
     return
 
 
-async def main(urls,c,debug):
+async def main(urls,c,debug,file):
     semaphore= asyncio.Semaphore(c)
     tasks = []
+
+    if file:
+        with open(file, 'w') as f:
+            ...
 
     # one browser multiple tags
     browser = await launch({
@@ -120,11 +127,11 @@ async def main(urls,c,debug):
     for url in urls:
         for payload in payloads:
             if has_param(url):
-                tasks.append(do_req(browser,url,payload,semaphore))
+                tasks.append(do_req(browser,url,payload,semaphore,file))
             else:
                 # it looks ugly but idc
                 for i in ["?","#"]:
-                    tasks.append(do_req(browser,url+i,payload,semaphore))
+                    tasks.append(do_req(browser,url+i,payload,semaphore,file))
     
     await asyncio.wait(tasks)
     await browser.close()
@@ -138,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument("-u", "--url", dest="url",help="Single url")
     parser.add_argument("-c", "--concurrency", dest="concurrency",type=int,help="Concurrency", default=10)
     parser.add_argument("-d", "--debug", dest="debug", help="Starts chrome without being headless", action="store_true", default=False)
+    parser.add_argument("-o", "--output", dest="output", type=Path, help="output *.txt file")
 
     
     args = parser.parse_args()
@@ -160,5 +168,5 @@ if __name__ == "__main__":
             for url in sys.stdin:
                 urls.append(url.replace("\n",""))
             
-    asyncio.get_event_loop().run_until_complete(main(urls,c, args.debug))
+    asyncio.get_event_loop().run_until_complete(main(urls,c, args.debug, args.output))
 
